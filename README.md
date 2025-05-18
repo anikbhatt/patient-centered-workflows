@@ -1,7 +1,5 @@
-# patient-centered-workflows
-Interactive healthcare workflow visualizations demonstrating clinical team collaboration from an EHR lens
 # Patient-Centered Healthcare Workflows
-*Interactive Healthcare System Workflow Visualizations*
+*Interactive Healthcare System Workflow Visualizations with an EHR lens*
 
 ## 🏥 Overview
 A comprehensive portfolio demonstrating healthcare informatics expertise through interactive workflow diagrams that showcase clinical team collaboration and patient-centered care processes.
