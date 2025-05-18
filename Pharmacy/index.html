@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<!-- saved from url=(0070)file:///C:/Users/nikbs/OneDrive/Desktop/Pharmacy%20Workflow/index.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Workflow</title>
+    <script src="./index.html_files/d3.min.js.download"></script>
+    <style>
+        :root {
+            --primary: #2e75b6;
+            --secondary: #5b9bd5;
+            --accent: #70ad47;
+            --light: #f2f9ff;
+            --dark: #2f5597;
+            --text: #333333;
+            --patient: #ed7d31;
+            --pharmacist: #5b9bd5;
+            --tech: #70ad47;
+            --system: #4472c4;
+            --provider: #9c27b0;
+            --nurse: #e91e63;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f9fbfd;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 1rem;
+        }
+        
+        h1 {
+            color: var(--dark);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        h2 {
+            color: var(--secondary);
+            font-size: 1.5rem;
+            font-weight: 400;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .view-toggles {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        button {
+            background-color: var(--light);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        button.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .diagram-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Enable horizontal scrolling */
+            overflow-y: hidden; /* Disable vertical scrolling */
+            margin-bottom: 2rem;
+            position: relative;
+            height: 640px;
+            width: 100%; /* Full width of parent */
+            scrollbar-width: thin; /* For Firefox */
+            scrollbar-color: var(--secondary) #f0f0f0; /* For Firefox */
+            scroll-behavior: smooth; /* For smooth scrolling */
+            -webkit-overflow-scrolling: touch; /* Better scrolling on iOS */
+        }
+        
+        /* Add subtle horizontal scroll indicator */
+        .diagram-container::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 40px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8));
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .diagram-container::-webkit-scrollbar {
+            height: 10px; /* Height of horizontal scrollbar */
+        }
+        
+        .diagram-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .diagram-container::-webkit-scrollbar-thumb {
+            background-color: var(--secondary);
+            border-radius: 5px;
+        }
+        
+        svg {
+            width: auto; /* Allow SVG to be wider than container */
+            height: 100%;
+            min-width: 100%; /* At minimum, fill container */
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle.action-circle {
+            stroke-width: 3px;
+            stroke: white;
+            cursor: pointer;
+        }
+        
+        .node text {
+            font-size: 12px;
+            fill: var(--text);
+            text-anchor: middle;
+            dy: -20px; /* Move text further above the node circle */
+            font-weight: 500; /* Slightly bolder text */
+            text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white, 0 0 3px white; /* Text outline for better readability */
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+        
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+        
+        .info-panel {
+            padding: 1.5rem;
+            background-color: var(--light);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 360px;
+            overflow-y: auto;
+        }
+        
+        .info-panel h3 {
+            color: var(--dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--secondary);
+        }
+        
+        .info-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .info-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 250px;
+            z-index: 100;
+            border: 1px solid var(--primary);
+        }
+        
+        .tooltip h4 {
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+        
+        .tooltip p {
+            font-size: 14px;
+        }
+        
+        .tooltip-title {
+            font-weight: bold;
+            color: var(--dark);
+        }
+        
+        .tooltip-role {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: white;
+            margin-bottom: 6px;
+        }
+        
+        .workflow-roles {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .role-tag {
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            color: white;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .role-pharmacist {
+            background-color: var(--pharmacist);
+        }
+        
+        .role-tech {
+            background-color: var(--tech);
+        }
+        
+        .role-patient {
+            background-color: var(--patient);
+        }
+        
+        .role-system {
+            background-color: var(--system);
+        }
+        
+        .role-provider {
+            background-color: var(--provider);
+        }
+        
+        .role-nurse {
+            background-color: var(--nurse);
+        }
+        
+        .footer {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .diagram-container {
+                height: 480px;
+                overflow-x: auto; /* Ensure horizontal scrolling on mobile */
+                -webkit-overflow-scrolling: touch; /* Better scrolling on iOS */
+            }
+        }
+        
+        .diagram-navigation {
+            display: none; /* Hide the navigation buttons */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pharmacy Workflow</h1>
+            <h2>Interactive Visualization of Pharmacy Team Roles in Patient Care</h2>
+        </header>
+        
+        <div class="controls">
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--patient);"></div>
+                    <span>Patient</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--provider);"></div>
+                    <span>Provider</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--nurse);"></div>
+                    <span>Nurse</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--pharmacist);"></div>
+                    <span>Pharmacist</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--tech);"></div>
+                    <span>Pharmacy Tech</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--system);"></div>
+                    <span>EPIC System</span>
+                </div>
+            </div>
+            
+            <div class="view-toggles">
+                <button id="showAll" class="active">All Steps</button>
+                <button id="showProvider">Provider View</button>
+                <button id="showNurse">Nurse View</button>
+                <button id="showPharmacist">Pharmacist View</button>
+                <button id="showTech">Pharmacy Tech View</button>
+                <button id="reset">Reset View</button>
+            </div>
+        </div>
+        
+        <div class="diagram-container">
+            <div id="tooltip" class="tooltip" style="opacity: 0; left: 487px; top: 332px;">
+                    <div class="tooltip-title">Patient Education</div>
+                    <div class="tooltip-role role-nurse">Nurse</div>
+                    <p>Nurse educates patient about their medications during care.</p>
+                </div>
+            <svg id="workflow-diagram" width="8510" height="600"><g transform="translate(250,20)"><path class="link" d="M0,302.5C185,302.5,185,137.5,370,137.5"></path><path class="link" d="M0,302.5C185,302.5,185,302.5,370,302.5"></path><path class="link" d="M0,302.5C185,302.5,185,467.5,370,467.5"></path><path class="link" d="M370,137.5C555,137.5,555,137.5,740,137.5"></path><path class="link" d="M370,302.5C555,302.5,555,302.5,740,302.5"></path><path class="link" d="M370,467.5C555,467.5,555,467.5,740,467.5"></path><path class="link" d="M740,137.5C925,137.5,925,137.5,1110,137.5"></path><path class="link" d="M740,302.5C925,302.5,925,302.5,1110,302.5"></path><path class="link" d="M1110,137.5C1295,137.5,1295,137.5,1480,137.5"></path><path class="link" d="M1480,137.5C1665,137.5,1665,137.5,1850,137.5"></path><path class="link" d="M1850,137.5C2035,137.5,2035,82.5,2220,82.5"></path><path class="link" d="M1850,137.5C2035,137.5,2035,192.5,2220,192.5"></path><path class="link" d="M2220,192.5C2405,192.5,2405,192.5,2590,192.5"></path><path class="link" d="M2590,192.5C2775,192.5,2775,192.5,2960,192.5"></path><path class="link" d="M2960,192.5C3145,192.5,3145,192.5,3330,192.5"></path><path class="link" d="M3330,192.5C3515,192.5,3515,192.5,3700,192.5"></path><path class="link" d="M3700,192.5C3885,192.5,3885,192.5,4070,192.5"></path><path class="link" d="M4070,192.5C4255,192.5,4255,192.5,4440,192.5"></path><path class="link" d="M4440,192.5C4625,192.5,4625,192.5,4810,192.5"></path><path class="link" d="M4810,192.5C4995,192.5,4995,192.5,5180,192.5"></path><path class="link" d="M5180,192.5C5365,192.5,5365,192.5,5550,192.5"></path><path class="link" d="M5550,192.5C5735,192.5,5735,192.5,5920,192.5"></path><path class="link" d="M5920,192.5C6105,192.5,6105,192.5,6290,192.5"></path><path class="link" d="M6290,192.5C6475,192.5,6475,192.5,6660,192.5"></path><path class="link" d="M6660,192.5C6845,192.5,6845,192.5,7030,192.5"></path><path class="link" d="M7030,192.5C7215,192.5,7215,192.5,7400,192.5"></path><path class="link" d="M7400,192.5C7585,192.5,7585,192.5,7770,192.5"></path><path class="link" d="M7770,192.5C7955,192.5,7955,192.5,8140,192.5"></path><g class="node patient" transform="translate(0,302.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--patient); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Patient Medication Man...</text></g><g class="node provider" transform="translate(370,137.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--provider); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Initial Patient Assess...</text></g><g class="node tech" transform="translate(370,302.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Inventory Management</text></g><g class="node system" transform="translate(370,467.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--system); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Clinical Decision Support</text></g><g class="node provider" transform="translate(740,137.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--provider); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Diagnosis &amp; Treatment ...</text></g><g class="node tech" transform="translate(740,302.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Controlled Substance M...</text></g><g class="node pharmacist" transform="translate(740,467.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Alert Management</text></g><g class="node provider" transform="translate(1110,137.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--provider); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Order Entry</text></g><g class="node pharmacist" transform="translate(1110,302.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Controlled Substance V...</text></g><g class="node system" transform="translate(1480,137.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--system); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Order Transmission</text></g><g class="node pharmacist" transform="translate(1850,137.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Order Verification</text></g><g class="node pharmacist" transform="translate(2220,82.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Clinical Intervention</text></g><g class="node tech" transform="translate(2220,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Order Processing</text></g><g class="node tech" transform="translate(2590,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Preparation</text></g><g class="node pharmacist" transform="translate(2960,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Final Verification</text></g><g class="node tech" transform="translate(3330,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Dispensing</text></g><g class="node nurse" transform="translate(3700,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Receipt</text></g><g class="node nurse" transform="translate(4070,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Pre-Administration Checks</text></g><g class="node nurse" transform="translate(4440,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Administration</text></g><g class="node nurse" transform="translate(4810,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Post-Administration Mo...</text></g><g class="node nurse" transform="translate(5180,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 4px; cursor: pointer; stroke: rgb(51, 51, 51);"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Patient Education</text></g><g class="node provider" transform="translate(5550,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--provider); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Provider Medication Re...</text></g><g class="node pharmacist" transform="translate(5920,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Pharmacist Education</text></g><g class="node pharmacist" transform="translate(6290,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Reconciliation</text></g><g class="node nurse" transform="translate(6660,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--nurse); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Discharge Planning</text></g><g class="node tech" transform="translate(7030,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--tech); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Discharge Prescription...</text></g><g class="node pharmacist" transform="translate(7400,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--pharmacist); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Medication Therapy Man...</text></g><g class="node provider" transform="translate(7770,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--provider); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Follow-up Care</text></g><g class="node patient" transform="translate(8140,192.5)"><circle r="26" cy="-20" style="fill: white; opacity: 0.8; pointer-events: none;"></circle><circle r="14" class="action-circle" style="fill: var(--patient); stroke-width: 3px; cursor: pointer; stroke: white;"></circle><text dy="-20px" text-anchor="middle" style="pointer-events: none;">Patient Medication Fol...</text></g></g></svg>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Selected Workflow Step</h3>
+            <div class="info-content" id="info-content">
+                <h4>Patient Education</h4>
+                <span class="role-tag role-nurse">Nurse</span>
+                <p style="margin-top: 10px;">Nurse educates patient about their medications during care.</p>
+            <h5>Key Tasks:</h5><ul><li>Explain medication purpose</li><li>Teach administration techniques</li><li>Review side effects to report</li><li>Document education provided</li></ul><h5>EPIC Willow Components:</h5><ul><li>Patient Education Module</li><li>Documentation Templates</li></ul></div>
+        </div>
+        
+        <div class="footer">
+            <p>Interactive Pharmacy Workflow Diagram | Created for Health Informatics Professionals</p>
+        </div>
+    </div>
+
+    <script>
+        // Add improved scroll hint to diagram container and initial scroll position
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.diagram-container');
+            const scrollHint = document.createElement('div');
+            scrollHint.style.position = 'absolute';
+            scrollHint.style.bottom = '10px';
+            scrollHint.style.right = '10px';
+            scrollHint.style.background = 'rgba(0,0,0,0.7)';
+            scrollHint.style.color = 'white';
+            scrollHint.style.padding = '8px 12px';
+            scrollHint.style.borderRadius = '4px';
+            scrollHint.style.fontSize = '14px';
+            scrollHint.style.fontWeight = 'bold';
+            scrollHint.style.opacity = '0.9';
+            scrollHint.style.zIndex = '100';
+            scrollHint.textContent = '← Scroll horizontally to see all workflow steps →';
+            container.appendChild(scrollHint);
+            
+            // Show hint for longer time
+            setTimeout(() => {
+                scrollHint.style.opacity = '0';
+                scrollHint.style.transition = 'opacity 1s ease';
+                setTimeout(() => scrollHint.remove(), 1000);
+            }, 10000);
+            
+            // Add arrow key navigation for diagram
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    container.scrollLeft += 100;
+                    e.preventDefault();
+                } else if (e.key === 'ArrowLeft') {
+                    container.scrollLeft -= 100;
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Workflow data structure
+        const workflowData = {
+            name: "Patient Medication Management",
+            role: "patient",
+            children: [
+                {
+                    name: "Initial Patient Assessment",
+                    role: "provider",
+                    description: "Provider evaluates patient condition and health status during visit or admission.",
+                    keyTasks: [
+                        "Gather patient history",
+                        "Perform physical examination",
+                        "Review existing medical records",
+                        "Document assessment findings"
+                    ],
+                    epicComponents: ["Clinical Documentation", "Chart Review"],
+                    children: [
+                        {
+                            name: "Diagnosis & Treatment Plan",
+                            role: "provider",
+                            description: "Provider determines diagnoses and develops comprehensive treatment plan including medications.",
+                            keyTasks: [
+                                "Establish medical diagnosis",
+                                "Develop treatment strategy",
+                                "Select appropriate therapies",
+                                "Document treatment rationale"
+                            ],
+                            epicComponents: ["Problem List", "Plan Documentation", "Clinical Decision Support"],
+                            children: [
+                                {
+                                    name: "Medication Order Entry",
+                                    role: "provider",
+                                    description: "Provider enters medication orders based on treatment plan and patient needs.",
+                                    keyTasks: [
+                                        "Select medications in EPIC",
+                                        "Specify dose, route, frequency",
+                                        "Document indication",
+                                        "Review initial alerts and interactions"
+                                    ],
+                                    epicComponents: ["Order Entry", "Clinical Decision Support", "Medication Reconciliation"],
+                                    children: [
+                                        {
+                                            name: "Order Transmission",
+                                            role: "system",
+                                            description: "Provider enters medication orders into EPIC system, which are routed to pharmacy via Willow module.",
+                                            keyTasks: [
+                                                "Capture medication orders electronically",
+                                                "Route to pharmacy queue",
+                                                "Initial clinical decision support alerts"
+                                            ],
+                                            epicComponents: ["Order Entry", "Clinical Decision Support"],
+                                            children: [
+                                                {
+                                                    name: "Order Verification",
+                                                    role: "pharmacist",
+                                                    description: "Pharmacist reviews new medication orders for appropriateness, safety, and accuracy.",
+                                                    keyTasks: [
+                                                        "Review medication orders against patient data",
+                                                        "Check for drug interactions",
+                                                        "Verify dosing appropriateness",
+                                                        "Ensure formulary compliance"
+                                                    ],
+                                                    epicComponents: ["Verification Queue", "Clinical Monitoring", "Formulary Management"],
+                                                    children: [
+                                                        {
+                                                            name: "Clinical Intervention",
+                                                            role: "pharmacist",
+                                                            description: "When potential issues are identified, pharmacist contacts provider and documents interventions.",
+                                                            keyTasks: [
+                                                                "Contact prescribers for clarification",
+                                                                "Recommend therapeutic alternatives",
+                                                                "Document clinical interventions",
+                                                                "Record outcomes of interventions"
+                                                            ],
+                                                            epicComponents: ["Clinical Intervention Documentation", "Secure Messaging"],
+                                                            children: []
+                                                        },
+                                                        {
+                                                            name: "Order Processing",
+                                                            role: "tech",
+                                                            description: "After verification, pharmacy technicians process medication orders for dispensing.",
+                                                            keyTasks: [
+                                                                "Process verified orders",
+                                                                "Prepare medications for dispensing",
+                                                                "Generate medication labels",
+                                                                "Queue for final check"
+                                                            ],
+                                                            epicComponents: ["Tech Workflow Queue", "Label Generation"],
+                                                            children: [
+                                                                {
+                                                                    name: "Medication Preparation",
+                                                                    role: "tech",
+                                                                    description: "Technicians prepare medications according to order specifications and pharmacy protocols.",
+                                                                    keyTasks: [
+                                                                        "Pull medications from inventory",
+                                                                        "Count or measure medications",
+                                                                        "Package medications",
+                                                                        "Apply appropriate labels"
+                                                                    ],
+                                                                    epicComponents: ["Barcode Scanning", "Inventory Management"],
+                                                                    children: [
+                                                                        {
+                                                                            name: "Final Verification",
+                                                                            role: "pharmacist",
+                                                                            description: "Pharmacist performs final check before medication is dispensed to patient care areas.",
+                                                                            keyTasks: [
+                                                                                "Verify correct medication",
+                                                                                "Confirm accurate labeling",
+                                                                                "Ensure complete documentation",
+                                                                                "Approve for dispensing"
+                                                                            ],
+                                                                            epicComponents: ["Verification Queue", "Barcode Verification"],
+                                                                            children: [
+                                                                                {
+                                                                                    name: "Medication Dispensing",
+                                                                                    role: "tech",
+                                                                                    description: "Delivering medications to patient care areas or outpatient pickup locations.",
+                                                                                    keyTasks: [
+                                                                                        "Organize medications for delivery",
+                                                                                        "Transport to patient care areas",
+                                                                                        "Update delivery status in Willow",
+                                                                                        "Manage outpatient pickup queue"
+                                                                                    ],
+                                                                                    epicComponents: ["Dispensing Workflow", "Delivery Tracking"],
+                                                                                    children: [
+                                                                                        {
+                                                                                            name: "Medication Receipt",
+                                                                                            role: "nurse",
+                                                                                            description: "Nurse receives and validates medications delivered to the unit.",
+                                                                                            keyTasks: [
+                                                                                                "Verify medications against orders",
+                                                                                                "Store medications appropriately",
+                                                                                                "Document receipt in EPIC",
+                                                                                                "Prepare for administration"
+                                                                                            ],
+                                                                                            epicComponents: ["MAR", "Medication Receipt Tracking"],
+                                                                                            children: [
+                                                                                                {
+                                                                                                    name: "Pre-Administration Checks",
+                                                                                                    role: "nurse",
+                                                                                                    description: "Nurse performs safety checks before administering medications to patient.",
+                                                                                                    keyTasks: [
+                                                                                                        "Verify right patient",
+                                                                                                        "Confirm right medication and dose",
+                                                                                                        "Check right time and route",
+                                                                                                        "Review relevant patient parameters"
+                                                                                                    ],
+                                                                                                    epicComponents: ["MAR", "Barcode Medication Administration"],
+                                                                                                    children: [
+                                                                                                        {
+                                                                                                            name: "Medication Administration",
+                                                                                                            role: "nurse",
+                                                                                                            description: "Nurse administers medications to the patient following safety protocols.",
+                                                                                                            keyTasks: [
+                                                                                                                "Administer medication to patient",
+                                                                                                                "Document administration in real-time",
+                                                                                                                "Monitor for immediate effects",
+                                                                                                                "Address patient questions"
+                                                                                                            ],
+                                                                                                            epicComponents: ["MAR (Medication Administration Record)", "Barcode Administration"],
+                                                                                                            children: [
+                                                                                                                {
+                                                                                                                    name: "Post-Administration Monitoring",
+                                                                                                                    role: "nurse",
+                                                                                                                    description: "Nurse monitors patient after medication administration for therapeutic effects and side effects.",
+                                                                                                                    keyTasks: [
+                                                                                                                        "Monitor vital signs",
+                                                                                                                        "Assess therapeutic response",
+                                                                                                                        "Document patient response",
+                                                                                                                        "Report adverse reactions"
+                                                                                                                    ],
+                                                                                                                    epicComponents: ["Flowsheets", "Clinical Documentation", "Adverse Event Reporting"],
+                                                                                                                    children: [
+                                                                                                                        {
+                                                                                                                            name: "Patient Education",
+                                                                                                                            role: "nurse",
+                                                                                                                            description: "Nurse educates patient about their medications during care.",
+                                                                                                                            keyTasks: [
+                                                                                                                                "Explain medication purpose",
+                                                                                                                                "Teach administration techniques",
+                                                                                                                                "Review side effects to report",
+                                                                                                                                "Document education provided"
+                                                                                                                            ],
+                                                                                                                            epicComponents: ["Patient Education Module", "Documentation Templates"],
+                                                                                                                            children: [
+                                                                                                                                {
+                                                                                                                                    name: "Provider Medication Review",
+                                                                                                                                    role: "provider",
+                                                                                                                                    description: "Provider reviews medication efficacy and makes adjustments as needed based on patient response.",
+                                                                                                                                    keyTasks: [
+                                                                                                                                        "Review medication effectiveness",
+                                                                                                                                        "Assess for adverse effects",
+                                                                                                                                        "Consider therapy adjustments",
+                                                                                                                                        "Document clinical decision-making"
+                                                                                                                                    ],
+                                                                                                                                    epicComponents: ["Chart Review", "Progress Notes", "Order Management"],
+                                                                                                                                    children: [
+                                                                                                                                        {
+                                                                                                                                            name: "Pharmacist Education",
+                                                                                                                                            role: "pharmacist",
+                                                                                                                                            description: "Pharmacists provide medication education to patients prior to discharge or medication pickup.",
+                                                                                                                                            keyTasks: [
+                                                                                                                                                "Explain medication purpose and use",
+                                                                                                                                                "Review potential side effects",
+                                                                                                                                                "Discuss important precautions",
+                                                                                                                                                "Answer patient questions"
+                                                                                                                                            ],
+                                                                                                                                            epicComponents: ["Patient Education Module", "Documentation Templates"],
+                                                                                                                                            children: [
+                                                                                                                                                {
+                                                                                                                                                    name: "Medication Reconciliation",
+                                                                                                                                                    role: "pharmacist",
+                                                                                                                                                    description: "Reconciling medications during transitions of care (admission, discharge, transfers).",
+                                                                                                                                                    keyTasks: [
+                                                                                                                                                        "Compare medication lists",
+                                                                                                                                                        "Identify discrepancies",
+                                                                                                                                                        "Resolve medication issues",
+                                                                                                                                                        "Update medication list"
+                                                                                                                                                    ],
+                                                                                                                                                    epicComponents: ["Medication Reconciliation Tool", "Discharge Navigator"],
+                                                                                                                                                    children: [
+                                                                                                                                                        {
+                                                                                                                                                            name: "Discharge Planning",
+                                                                                                                                                            role: "nurse",
+                                                                                                                                                            description: "Nurse coordinates medication plan for patient discharge and transition of care.",
+                                                                                                                                                            keyTasks: [
+                                                                                                                                                                "Review discharge medications",
+                                                                                                                                                                "Coordinate with pharmacy",
+                                                                                                                                                                "Prepare patient instructions",
+                                                                                                                                                                "Document discharge plan"
+                                                                                                                                                            ],
+                                                                                                                                                            epicComponents: ["Discharge Navigator", "Patient Instructions"],
+                                                                                                                                                            children: [
+                                                                                                                                                                {
+                                                                                                                                                                    name: "Discharge Prescription Management",
+                                                                                                                                                                    role: "tech",
+                                                                                                                                                                    description: "Processing prescriptions for patients being discharged from the hospital.",
+                                                                                                                                                                    keyTasks: [
+                                                                                                                                                                        "Process discharge prescriptions",
+                                                                                                                                                                        "Coordinate with retail pharmacy",
+                                                                                                                                                                        "Prepare medications for discharge",
+                                                                                                                                                                        "Manage insurance issues"
+                                                                                                                                                                    ],
+                                                                                                                                                                    epicComponents: ["Discharge Medication Module", "Rx Writer"],
+                                                                                                                                                                    children: [
+                                                                                                                                                                        {
+                                                                                                                                                                            name: "Medication Therapy Management",
+                                                                                                                                                                            role: "pharmacist",
+                                                                                                                                                                            description: "Ongoing monitoring of patient medication therapy and outcomes.",
+                                                                                                                                                                            keyTasks: [
+                                                                                                                                                                                "Review complete medication regimen",
+                                                                                                                                                                                "Identify optimization opportunities",
+                                                                                                                                                                                "Recommend therapy changes",
+                                                                                                                                                                                "Document clinical outcomes"
+                                                                                                                                                                            ],
+                                                                                                                                                                            epicComponents: ["Clinical Surveillance", "Documentation Templates"],
+                                                                                                                                                                            children: [
+                                                                                                                                                                                {
+                                                                                                                                                                                    name: "Follow-up Care",
+                                                                                                                                                                                    role: "provider",
+                                                                                                                                                                                    description: "Provider follows up with patient after discharge to evaluate medication therapy effectiveness.",
+                                                                                                                                                                                    keyTasks: [
+                                                                                                                                                                                        "Assess therapy outcomes",
+                                                                                                                                                                                        "Address ongoing issues",
+                                                                                                                                                                                        "Make therapy adjustments",
+                                                                                                                                                                                        "Plan continued care"
+                                                                                                                                                                                    ],
+                                                                                                                                                                                    epicComponents: ["Ambulatory EMR", "Follow-up Scheduling"],
+                                                                                                                                                                                    children: [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            name: "Patient Medication Follow-up",
+                                                                                                                                                                                            role: "patient",
+                                                                                                                                                                                            description: "Patient-centered outcomes and follow-up on medication therapy.",
+                                                                                                                                                                                            keyTasks: [
+                                                                                                                                                                                                "Track patient adherence",
+                                                                                                                                                                                                "Monitor for adverse events",
+                                                                                                                                                                                                "Schedule follow-up appointments",
+                                                                                                                                                                                                "Evaluate therapy outcomes"
+                                                                                                                                                                                            ],
+                                                                                                                                                                                            epicComponents: ["MyChart Patient Portal", "Follow-up Scheduling"],
+                                                                                                                                                                                            children: []
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Inventory Management",
+                    role: "tech",
+                    description: "Pharmacy technicians manage medication inventory using Willow's inventory tools.",
+                    keyTasks: [
+                        "Monitor medication stock levels",
+                        "Process medication orders from wholesalers",
+                        "Receive and stock medications",
+                        "Conduct regular inventory counts"
+                    ],
+                    epicComponents: ["Inventory Management", "Purchasing Module"],
+                    children: [
+                        {
+                            name: "Controlled Substance Management",
+                            role: "tech",
+                            description: "Special handling and documentation for controlled substances according to regulations.",
+                            keyTasks: [
+                                "Maintain perpetual inventory",
+                                "Document chain of custody",
+                                "Perform regular audits",
+                                "Reconcile discrepancies"
+                            ],
+                            epicComponents: ["Controlled Substance Manager", "Regulatory Reporting"],
+                            children: [
+                                {
+                                    name: "Controlled Substance Verification",
+                                    role: "pharmacist",
+                                    description: "Pharmacist oversight of controlled substance processes and documentation.",
+                                    keyTasks: [
+                                        "Verify controlled substance counts",
+                                        "Approve destruction processes",
+                                        "Review audit reports",
+                                        "Ensure regulatory compliance"
+                                    ],
+                                    epicComponents: ["Controlled Substance Tracker", "Compliance Dashboard"],
+                                    children: []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Clinical Decision Support",
+                    role: "system",
+                    description: "EPIC Willow provides automated alerts and recommendations based on patient data.",
+                    keyTasks: [
+                        "Generate drug interaction alerts",
+                        "Flag potential allergies",
+                        "Highlight dosing concerns",
+                        "Suggest therapeutic alternatives"
+                    ],
+                    epicComponents: ["Clinical Decision Support", "Alert Management"],
+                    children: [
+                        {
+                            name: "Alert Management",
+                            role: "pharmacist",
+                            description: "Pharmacists evaluate and respond to clinical decision support alerts.",
+                            keyTasks: [
+                                "Review medication alerts",
+                                "Assess clinical relevance",
+                                "Document interventions",
+                                "Override with rationale when appropriate"
+                            ],
+                            epicComponents: ["Alert Response Documentation", "Override Reasons"],
+                            children: []
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Calculate maximum depth of the tree
+        function getMaxDepth(node) {
+            if (!node.children || node.children.length === 0) {
+                return 1; // Leaf node
+            }
+            
+            let maxChildDepth = 0;
+            for (const child of node.children) {
+                const childDepth = getMaxDepth(child);
+                if (childDepth > maxChildDepth) {
+                    maxChildDepth = childDepth;
+                }
+            }
+            
+            return maxChildDepth + 1; // This node + maximum child depth
+        }
+        
+        // Calculate maximum tree depth
+        const maxTreeDepth = getMaxDepth(workflowData);
+        console.log("Maximum tree depth:", maxTreeDepth);
+        
+        // Setup D3 visualization with dynamic width based on tree depth
+        const nodeSpacing = 370; // Horizontal spacing per level
+        const margin = {top: 20, right: 250, bottom: 30, left: 250};
+        // Calculate width based on maximum depth
+        const width = (maxTreeDepth * nodeSpacing) - margin.left - margin.right;
+        const height = 600 - margin.top - margin.bottom;
+        
+        // Create SVG container with width based on tree depth
+        const svg = d3.select("#workflow-diagram")
+            .attr("width", width + margin.right + margin.left)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Create tooltip element
+        const tooltip = d3.select("#tooltip");
+
+        // Initialize tree layout - HORIZONTAL ORIENTATION
+        const tree = d3.tree()
+            .size([height, width])
+            .separation((a, b) => (a.parent == b.parent ? 2 : 3)); // Increased separation between nodes
+
+        // Root data hierarchy
+        const root = d3.hierarchy(workflowData, d => d.children);
+        
+        // Assign positions to nodes
+        const treeData = tree(root);
+        
+        // Set fixed distance between horizontal levels (depth)
+        treeData.each(d => {
+            d.y = d.depth * nodeSpacing; // Use consistent nodeSpacing value
+        });
+
+        // Create links
+        const links = svg.selectAll(".link")
+            .data(treeData.links())
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x)
+            );
+
+        // Create nodes with better spacing
+        const nodes = svg.selectAll(".node")
+            .data(treeData.descendants())
+            .enter().append("g")
+            .attr("class", d => `node ${d.data.role}`)
+            .attr("transform", d => `translate(${d.y},${d.x})`)
+            .on("mouseover", showTooltip)
+            .on("mouseout", hideTooltip);
+            
+        // Add a white background circle behind text for better readability
+        nodes.append("circle")
+            .attr("r", 26)
+            .attr("cy", -20) // Position at text location
+            .style("fill", "white")
+            .style("opacity", 0.8)
+            .style("pointer-events", "none");
+
+        // Add action circles to nodes - with click event directly on this element
+        nodes.append("circle")
+            .attr("r", 14) // Larger circles
+            .attr("class", "action-circle") // Added class for better targeting
+            .style("fill", d => {
+                switch(d.data.role) {
+                    case "patient": return "var(--patient)";
+                    case "pharmacist": return "var(--pharmacist)";
+                    case "tech": return "var(--tech)";
+                    case "system": return "var(--system)";
+                    case "provider": return "var(--provider)";
+                    case "nurse": return "var(--nurse)";
+                    default: return "#999";
+                }
+            })
+            .style("stroke-width", "3px") // Thicker border for better visibility
+            .style("cursor", "pointer") // Make sure cursor changes to pointer
+            .on("click", handleNodeClick); // Add click handler directly to circle
+
+        // Add labels to nodes - shortened text versions for diagram clarity
+        nodes.append("text")
+            .attr("dy", "-20px")
+            .attr("text-anchor", "middle")
+            .text(d => shortenText(d.data.name))
+            .style("pointer-events", "none"); // Make sure text doesn't interfere with clicks
+            
+        // Function to shorten text for display in diagram
+        function shortenText(text) {
+            // Keep text to one line with max characters
+            if (text.length > 25) {
+                return text.substring(0, 22) + '...';
+            }
+            return text;
+        }
+
+        // Handle node click
+        function handleNodeClick(event, d) {
+            // Remove active class from all circles
+            svg.selectAll(".action-circle").style("stroke", "white").style("stroke-width", "3px");
+            
+            // Highlight selected node's circle
+            d3.select(this)
+                .style("stroke", "#333")
+                .style("stroke-width", "4px");
+            
+            // Update info panel with full details
+            updateInfoPanel(d.data);
+            
+            // Prevent event from bubbling up
+            event.stopPropagation();
+        }
+
+        // Update information panel with selected node data - ensure full text is displayed
+        function updateInfoPanel(data) {
+            const infoContent = document.getElementById("info-content");
+            
+            // Clear previous content
+            infoContent.innerHTML = "";
+            
+            // Create role badge
+            const roleClass = `role-${data.role}`;
+            const roleLabel = data.role.charAt(0).toUpperCase() + data.role.slice(1);
+            
+            // Build HTML content with FULL text (not truncated)
+            let html = `
+                <h4>${data.name}</h4>
+                <span class="role-tag ${roleClass}">${roleLabel}</span>
+                <p style="margin-top: 10px;">${data.description}</p>
+            `;
+            
+            // Add key tasks if available
+            if (data.keyTasks && data.keyTasks.length) {
+                html += `<h5>Key Tasks:</h5><ul>`;
+                data.keyTasks.forEach(task => {
+                    html += `<li>${task}</li>`;
+                });
+                html += `</ul>`;
+            }
+            
+            // Add EPIC components if available
+            if (data.epicComponents && data.epicComponents.length) {
+                html += `<h5>EPIC Willow Components:</h5><ul>`;
+                data.epicComponents.forEach(component => {
+                    html += `<li>${component}</li>`;
+                });
+                html += `</ul>`;
+            }
+            
+            infoContent.innerHTML = html;
+        }
+
+        // Show tooltip on mouseover
+        function showTooltip(event, d) {
+            const roleLabel = d.data.role.charAt(0).toUpperCase() + d.data.role.slice(1);
+            
+            tooltip.style("opacity", 1)
+                .html(`
+                    <div class="tooltip-title">${d.data.name}</div>
+                    <div class="tooltip-role role-${d.data.role}">${roleLabel}</div>
+                    <p>${d.data.description}</p>
+                `)
+                .style("left", (event.pageX - 125) + "px")
+                .style("top", (event.pageY - 160) + "px"); // Moved tooltip higher to avoid overlapping with nodes
+        }
+
+        // Hide tooltip on mouseout
+        function hideTooltip() {
+            tooltip.style("opacity", 0);
+        }
+
+        // View toggle functionality
+        document.getElementById("showAll").addEventListener("click", function() {
+            setActiveButton(this);
+            resetView();
+            // Show all nodes
+            svg.selectAll(".node").style("opacity", 1);
+            svg.selectAll(".link").style("opacity", 1);
+        });
+
+        document.getElementById("showProvider").addEventListener("click", function() {
+            setActiveButton(this);
+            resetView();
+            
+            // Dim non-provider nodes
+            svg.selectAll(".node").style("opacity", 0.3);
+            svg.selectAll(".link").style("opacity", 0.3);
+            
+            // Highlight provider nodes
+            svg.selectAll(".node.provider").style("opacity", 1);
+            
+            // Also highlight connected paths
+            highlightConnectedNodes("provider");
+        });
+
+        document.getElementById("showNurse").addEventListener("click", function() {
+            setActiveButton(this);
+            resetView();
+            
+            // Dim non-nurse nodes
+            svg.selectAll(".node").style("opacity", 0.3);
+            svg.selectAll(".link").style("opacity", 0.3);
+            
+            // Highlight nurse nodes
+            svg.selectAll(".node.nurse").style("opacity", 1);
+            
+            // Also highlight connected paths
+            highlightConnectedNodes("nurse");
+        });
+
+        document.getElementById("showPharmacist").addEventListener("click", function() {
+            setActiveButton(this);
+            resetView();
+            
+            // Dim non-pharmacist nodes
+            svg.selectAll(".node").style("opacity", 0.3);
+            svg.selectAll(".link").style("opacity", 0.3);
+            
+            // Highlight pharmacist nodes
+            svg.selectAll(".node.pharmacist").style("opacity", 1);
+            
+            // Also highlight connected paths
+            highlightConnectedNodes("pharmacist");
+        });
+
+        document.getElementById("showTech").addEventListener("click", function() {
+            setActiveButton(this);
+            resetView();
+            
+            // Dim non-tech nodes
+            svg.selectAll(".node").style("opacity", 0.3);
+            svg.selectAll(".link").style("opacity", 0.3);
+            
+            // Highlight tech nodes
+            svg.selectAll(".node.tech").style("opacity", 1);
+            
+            // Also highlight connected paths
+            highlightConnectedNodes("tech");
+        });
+
+        document.getElementById("reset").addEventListener("click", function() {
+            setActiveButton(document.getElementById("showAll"));
+            resetView();
+        });
+
+        // Helper function to set active button
+        function setActiveButton(button) {
+            // Remove active class from all buttons
+            document.querySelectorAll(".view-toggles button").forEach(btn => {
+                btn.classList.remove("active");
+            });
+            
+            // Add active class to clicked button
+            button.classList.add("active");
+        }
+
+        // Helper function to reset view
+        function resetView() {
+            // Reset info panel
+            document.getElementById("info-content").innerHTML = '<div class="placeholder">Click on any node in the diagram to see detailed information about that workflow step.</div>';
+            
+            // Reset all node highlighting
+            svg.selectAll(".node circle").style("stroke", "white").style("stroke-width", "2px");
+            
+            // Reset node and link opacity
+            svg.selectAll(".node").style("opacity", 1);
+            svg.selectAll(".link").style("opacity", 1);
+        }
+
+        // Helper function to highlight connected nodes and paths
+        function highlightConnectedNodes(role) {
+            // Get all nodes of specified role
+            const roleNodes = svg.selectAll(`.node.${role}`);
+            
+            // Process each node
+            roleNodes.each(function(d) {
+                // Highlight path to root
+                let currentNode = d;
+                while (currentNode.parent) {
+                    // Find the link between current node and its parent
+                    svg.selectAll(".link").filter(link => 
+                        (link.source === currentNode.parent && link.target === currentNode)
+                    ).style("opacity", 1);
+                    
+                    // Highlight the parent node
+                    svg.selectAll(".node").filter(node => node === currentNode.parent)
+                        .style("opacity", 1);
+                    
+                    // Move up to parent
+                    currentNode = currentNode.parent;
+                }
+                
+                // Highlight path to descendants
+                function highlightDescendants(node) {
+                    if (!node.children) return;
+                    
+                    node.children.forEach(child => {
+                        // Highlight the link
+                        svg.selectAll(".link").filter(link => 
+                            (link.source === node && link.target === child)
+                        ).style("opacity", 1);
+                        
+                        // Highlight the child node
+                        svg.selectAll(".node").filter(n => n === child)
+                            .style("opacity", 1);
+                        
+                        // Recursively highlight descendants
+                        highlightDescendants(child);
+                    });
+                }
+                
+                highlightDescendants(d);
+            });
+        }
+
+        // Center the initial view
+        svg.attr("transform", `translate(${margin.left},${margin.top})`);
+    </script>
+
+
+</body></html>
